@@ -1,0 +1,49 @@
+{
+  "name": "n8n-nodes-docmiral",
+  "version": "0.1.0",
+  "description": "n8n community node for DocMiral — document generation, AI filling, PDF export, and e-signatures",
+  "keywords": [
+    "n8n-community-node-package",
+    "docmiral",
+    "pdf",
+    "document",
+    "esignature"
+  ],
+  "license": "MIT",
+  "homepage": "https://docmiral.com",
+  "author": {
+    "name": "DocMiral"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/docmiral/n8n-nodes-docmiral"
+  },
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc && npm run copy-assets",
+    "copy-assets": "cp nodes/Docmiral/docmiral.png dist/nodes/Docmiral/",
+    "dev": "tsc --watch",
+    "lint": "eslint nodes --ext .ts",
+    "prepublishOnly": "npm run build"
+  },
+  "files": [
+    "dist"
+  ],
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      "dist/credentials/DocmiralApi.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/Docmiral/Docmiral.node.js"
+    ]
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.37",
+    "n8n-workflow": "^2.12.0",
+    "typescript": "^5.9.3"
+  },
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  }
+}

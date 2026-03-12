@@ -1,0 +1,1 @@
+{"version":3,"file":"Docmiral.node.d.ts","sourceRoot":"","sources":["../../../nodes/Docmiral/Docmiral.node.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EACX,iBAAiB,EACjB,kBAAkB,EAClB,SAAS,EACT,oBAAoB,EAIpB,MAAM,cAAc,CAAC;AAiCtB,qBAAa,QAAS,YAAW,SAAS;IACzC,WAAW,EAAE,oBAAoB,CAmZ/B;IAII,OAAO,CAAC,IAAI,EAAE,iBAAiB,GAAG,OAAO,CAAC,kBAAkB,EAAE,EAAE,CAAC;CA+PvE"}

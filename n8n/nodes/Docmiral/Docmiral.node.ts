@@ -21,21 +21,44 @@ async function docmiralRequest(
 	const credentials = await ctx.getCredentials('docmiralApi');
 	const baseUrl = (credentials.baseUrl as string).replace(/\/$/, '');
 
-	const options = {
+	const hasBody = body !== undefined && Object.keys(body).length > 0;
+
+	return ctx.helpers.httpRequest({
 		method,
 		url: `${baseUrl}${path}`,
 		headers: {
-			Authorization: `Bearer ${credentials.apiToken}`,
+			Authorization: `Bearer ${credentials.apiToken as string}`,
 			'Content-Type': 'application/json',
 		},
-		qs: qs ?? {},
-		body,
+		qs,
+		body: hasBody ? body : undefined,
 		json: true,
-	};
-
-	return ctx.helpers.request(options) as Promise<IDataObject>;
+	}) as Promise<IDataObject>;
 }
 
+
+async function buildDocumentBody(ctx: IExecuteFunctions, i: number, prefix: string): Promise<IDataObject> {
+	const templateId = ctx.getNodeParameter(`${prefix}TemplateId`, i) as string;
+	const name = ctx.getNodeParameter(`${prefix}Name`, i, '') as string;
+	const init = ctx.getNodeParameter(`${prefix}Init`, i, false) as boolean;
+	const body: IDataObject = { templateId, init };
+	if (name) body.name = name;
+	if (!init) {
+		const dataJson = ctx.getNodeParameter(`${prefix}DataJson`, i, '{}') as string;
+		const settingsJson = ctx.getNodeParameter(`${prefix}SettingsJson`, i, '{}') as string;
+		const data = typeof dataJson === 'string' ? JSON.parse(dataJson) : dataJson;
+		const settings = typeof settingsJson === 'string' ? JSON.parse(settingsJson) : settingsJson;
+		const hasData = Object.keys(data as object).length > 0;
+		const hasSettings = Object.keys(settings as object).length > 0;
+		if (hasData || hasSettings) {
+			body.data = {
+				...(hasSettings ? { settings } : {}),
+				...(data as object),
+			};
+		}
+	}
+	return body;
+}
 
 // ─── node definition ─────────────────────────────────────────────────────────
 
@@ -65,6 +88,7 @@ export class Docmiral implements INodeType {
 					{ name: 'Bucket', value: 'bucket' },
 					{ name: 'E-Signature', value: 'esignature' },
 					{ name: 'TARS (AI)', value: 'tars' },
+					{ name: 'Category', value: 'category' },
 					{ name: 'File', value: 'file' },
 				],
 				default: 'document',
@@ -101,7 +125,13 @@ export class Docmiral implements INodeType {
 				options: [
 					{ name: 'List', value: 'list', action: 'List templates' },
 					{ name: 'Get', value: 'get', action: 'Get a template' },
+					{ name: 'Create', value: 'create', action: 'Create a template' },
+					{ name: 'Update', value: 'update', action: 'Update a template' },
+					{ name: 'Delete', value: 'delete', action: 'Delete a template' },
 					{ name: 'Clone', value: 'clone', action: 'Clone a template' },
+					{ name: 'Build PDF', value: 'buildPdf', action: 'Build PDF from a template' },
+					{ name: 'Build Image', value: 'buildImage', action: 'Build image from a template' },
+					{ name: 'Get Schema', value: 'getSchema', action: 'Get template schema' },
 				],
 				default: 'list',
 			},
@@ -170,6 +200,20 @@ export class Docmiral implements INodeType {
 				default: 'upload',
 			},
 
+			// ── category operations ──────────────────────────────────────────────
+			{
+				displayName: 'Operation',
+				name: 'operation',
+				type: 'options',
+				noDataExpression: true,
+				displayOptions: { show: { resource: ['category'] } },
+				options: [
+					{ name: 'List', value: 'list', action: 'List categories' },
+				],
+				default: 'list',
+			},
+
+
 			// ══════════════════════════════════════════════════════════════════
 			// DOCUMENT fields
 			// ══════════════════════════════════════════════════════════════════
@@ -201,7 +245,7 @@ export class Docmiral implements INodeType {
 				displayOptions: {
 					show: {
 						resource: ['document'],
-						operation: ['get', 'update', 'delete', 'buildPdf', 'buildPptx', 'buildImage', 'clone'],
+						operation: ['get', 'update', 'delete', 'clone'],
 					},
 				},
 			},
@@ -227,29 +271,44 @@ export class Docmiral implements INodeType {
 				description: 'Optional name for the new document',
 			},
 
-			// create / update — data (JSON)
+			// create — init
+			{
+				displayName: 'Init (Empty Document)',
+				name: 'init',
+				type: 'boolean',
+				default: false,
+				displayOptions: { show: { resource: ['document'], operation: ['create'] } },
+				description: 'Whether to create an empty document without any data',
+			},
+
+			// create — settings (hidden when init=true)
+			{
+				displayName: 'Settings (JSON)',
+				name: 'settingsJson',
+				type: 'json',
+				default: '{}',
+				displayOptions: { show: { resource: ['document'], operation: ['create'], init: [false] } },
+				description: 'Document settings: size, background, color, margin, padding, fontSize',
+			},
+
+			// create — data (hidden when init=true)
 			{
 				displayName: 'Data (JSON)',
 				name: 'dataJson',
 				type: 'json',
 				default: '{}',
-				displayOptions: {
-					show: { resource: ['document'], operation: ['create', 'update'] },
-				},
+				displayOptions: { show: { resource: ['document'], operation: ['create'], init: [false] } },
 				description: 'Document field data as JSON object',
 			},
 
-			// build PDF — engine
+			// update — data (JSON)
 			{
-				displayName: 'PDF Engine',
-				name: 'pdfEngine',
-				type: 'options',
-				options: [
-					{ name: 'Playwright (recommended)', value: 'playwright' },
-					{ name: 'WeasyPrint', value: 'weasyprint' },
-				],
-				default: 'playwright',
-				displayOptions: { show: { resource: ['document'], operation: ['buildPdf'] } },
+				displayName: 'Data (JSON)',
+				name: 'dataJson',
+				type: 'json',
+				default: '{}',
+				displayOptions: { show: { resource: ['document'], operation: ['update'] } },
+				description: 'Document field data as JSON object',
 			},
 
 			// build image — page
@@ -260,6 +319,91 @@ export class Docmiral implements INodeType {
 				default: 1,
 				displayOptions: { show: { resource: ['document'], operation: ['buildImage'] } },
 				description: 'Page number to render (1-based)',
+			},
+
+			// build pdf/pptx/image — source toggle
+			{
+				displayName: 'Build Source',
+				name: 'buildSource',
+				type: 'options',
+				options: [
+					{ name: 'By Document ID', value: 'byId' },
+					{ name: 'Directly from Template', value: 'direct' },
+				],
+				default: 'byId',
+				displayOptions: { show: { resource: ['document'], operation: ['buildPdf', 'buildPptx', 'buildImage'] } },
+				description: 'Build from an existing document or create one on-the-fly from a template',
+			},
+
+			// build — document ID (byId mode)
+			{
+				displayName: 'Document ID',
+				name: 'buildEntityId',
+				type: 'string',
+				default: '',
+				required: true,
+				displayOptions: { show: { resource: ['document'], operation: ['buildPdf', 'buildPptx', 'buildImage'], buildSource: ['byId'] } },
+			},
+
+			// build — template ID (direct mode)
+			{
+				displayName: 'Template ID',
+				name: 'buildTemplateId',
+				type: 'string',
+				default: '',
+				required: true,
+				displayOptions: { show: { resource: ['document'], operation: ['buildPdf', 'buildPptx', 'buildImage'], buildSource: ['direct'] } },
+				description: 'ID of the template to create the document from',
+			},
+
+			// build — name (direct mode)
+			{
+				displayName: 'Name',
+				name: 'buildName',
+				type: 'string',
+				default: '',
+				displayOptions: { show: { resource: ['document'], operation: ['buildPdf', 'buildPptx', 'buildImage'], buildSource: ['direct'] } },
+				description: 'Optional name for the created document',
+			},
+
+			// build — init (direct mode)
+			{
+				displayName: 'Init (Empty Document)',
+				name: 'buildInit',
+				type: 'boolean',
+				default: false,
+				displayOptions: { show: { resource: ['document'], operation: ['buildPdf', 'buildPptx', 'buildImage'], buildSource: ['direct'] } },
+				description: 'Whether to create an empty document without any data',
+			},
+
+			// build — settings (direct mode, init=false)
+			{
+				displayName: 'Settings (JSON)',
+				name: 'buildSettingsJson',
+				type: 'json',
+				default: '{}',
+				displayOptions: { show: { resource: ['document'], operation: ['buildPdf', 'buildPptx', 'buildImage'], buildSource: ['direct'], buildInit: [false] } },
+				description: 'Document settings: size, background, color, margin, padding, fontSize',
+			},
+
+			// build — data (direct mode, init=false)
+			{
+				displayName: 'Data (JSON)',
+				name: 'buildDataJson',
+				type: 'json',
+				default: '{}',
+				displayOptions: { show: { resource: ['document'], operation: ['buildPdf', 'buildPptx', 'buildImage'], buildSource: ['direct'], buildInit: [false] } },
+				description: 'Document field data as JSON object',
+			},
+
+			// build — keep document (direct mode)
+			{
+				displayName: 'Keep Document',
+				name: 'keepDocument',
+				type: 'boolean',
+				default: true,
+				displayOptions: { show: { resource: ['document'], operation: ['buildPdf', 'buildPptx', 'buildImage'], buildSource: ['direct'] } },
+				description: 'Whether to keep the created document in your list after building. Disable to auto-delete it after the file is generated.',
 			},
 
 			// ══════════════════════════════════════════════════════════════════
@@ -281,12 +425,145 @@ export class Docmiral implements INodeType {
 				displayOptions: { show: { resource: ['template'], operation: ['list'] } },
 			},
 			{
+				displayName: 'Category ID',
+				name: 'templateListCategoryId',
+				type: 'string',
+				default: '',
+				displayOptions: { show: { resource: ['template'], operation: ['list'] } },
+				description: 'Filter templates by category ID',
+			},
+			{
+				displayName: 'Library',
+				name: 'templateLibrary',
+				type: 'options',
+				options: [
+					{ name: 'Public Library', value: 'public' },
+					{ name: 'My Library', value: 'mylist' },
+				],
+				default: 'public',
+				displayOptions: { show: { resource: ['template'], operation: ['list'] } },
+				description: 'Filter templates from the public library or only your own',
+			},
+			{
 				displayName: 'Template ID',
 				name: 'templateId',
 				type: 'string',
 				default: '',
 				required: true,
-				displayOptions: { show: { resource: ['template'], operation: ['get', 'clone'] } },
+				displayOptions: { show: { resource: ['template'], operation: ['get', 'update', 'delete', 'clone', 'buildPdf', 'buildImage', 'getSchema'] } },
+			},
+
+			// create fields
+			{
+				displayName: 'Name',
+				name: 'templateName',
+				type: 'string',
+				default: '',
+				displayOptions: { show: { resource: ['template'], operation: ['create'] } },
+				description: 'Template name. Use "suggest" to auto-generate a name.',
+			},
+			{
+				displayName: 'Category ID',
+				name: 'categoryId',
+				type: 'string',
+				default: '',
+				displayOptions: { show: { resource: ['template'], operation: ['create'] } },
+			},
+			{
+				displayName: 'HTML',
+				name: 'templateHtml',
+				type: 'string',
+				typeOptions: { rows: 6 },
+				default: '',
+				displayOptions: { show: { resource: ['template'], operation: ['create'] } },
+				description: 'Initial HTML content for the template',
+			},
+			{
+				displayName: 'Settings (JSON)',
+				name: 'templateSettings',
+				type: 'json',
+				default: '{}',
+				displayOptions: { show: { resource: ['template'], operation: ['create'] } },
+				description: 'Template settings: size, margin, padding, background, color, fontSize, fonts',
+			},
+
+			// update fields
+			{
+				displayName: 'Fields to Update',
+				name: 'updateFields',
+				type: 'collection',
+				placeholder: 'Add Field',
+				default: {},
+				displayOptions: { show: { resource: ['template'], operation: ['update'] } },
+				options: [
+					{
+						displayName: 'Name',
+						name: 'name',
+						type: 'string',
+						default: '',
+					},
+					{
+						displayName: 'Settings (JSON)',
+						name: 'settings',
+						type: 'json',
+						default: '{}',
+						description: 'Template settings: size, margin, padding, background, color, fontSize, fonts',
+					},
+					{
+						displayName: 'HTML',
+						name: 'html',
+						type: 'string',
+						typeOptions: { rows: 6 },
+						default: '',
+					},
+					{
+						displayName: 'Header Content',
+						name: 'header_content',
+						type: 'string',
+						typeOptions: { rows: 4 },
+						default: '',
+					},
+					{
+						displayName: 'Footer Content',
+						name: 'footer_content',
+						type: 'string',
+						typeOptions: { rows: 4 },
+						default: '',
+					},
+				],
+			},
+
+			// getSchema fields
+			{
+				displayName: 'Schema Format',
+				name: 'schemaFormat',
+				type: 'options',
+				options: [
+					{ name: 'Standard', value: 'standard' },
+					{ name: 'JSON Schema', value: 'jsonSchema' },
+					{ name: 'OpenAI (AI Model)', value: 'aimodel_openai' },
+				],
+				default: 'standard',
+				displayOptions: { show: { resource: ['template'], operation: ['getSchema'] } },
+			},
+			{
+				displayName: 'Output',
+				name: 'schemaOutput',
+				type: 'options',
+				options: [
+					{ name: 'Schema Definition', value: 'schema' },
+					{ name: 'Sample Data', value: 'sample' },
+				],
+				default: 'schema',
+				displayOptions: { show: { resource: ['template'], operation: ['getSchema'] } },
+			},
+			{
+				displayName: 'Include Default Values',
+				name: 'defaultValue',
+				type: 'boolean',
+				default: false,
+				displayOptions: { show: { resource: ['template'], operation: ['getSchema'], schemaOutput: ['sample'] } },
+				description: 'Whether to include default/sample values in the output',
 			},
 
 			// ══════════════════════════════════════════════════════════════════
@@ -462,20 +739,31 @@ export class Docmiral implements INodeType {
 				if (operation === 'list') {
 					const limit = this.getNodeParameter('limit', i) as number;
 					const offset = this.getNodeParameter('offset', i) as number;
-					responseData = await docmiralRequest(this, 'GET', '/entities/', undefined, { limit, offset });
+					responseData = await docmiralRequest(this, 'GET', '/entities', undefined, { limit, offset });
 				} else if (operation === 'get') {
 					const id = this.getNodeParameter('entityId', i) as string;
 					responseData = await docmiralRequest(this, 'GET', `/entities/${id}`);
 				} else if (operation === 'create') {
 					const templateId = this.getNodeParameter('templateId', i) as string;
 					const name = this.getNodeParameter('name', i) as string;
-					const dataJson = this.getNodeParameter('dataJson', i) as string;
-					const data = typeof dataJson === 'string' ? JSON.parse(dataJson) : dataJson;
-					responseData = await docmiralRequest(this, 'POST', '/entities/', {
-						template: templateId,
-						...(name ? { name } : {}),
-						data,
-					});
+					const init = this.getNodeParameter('init', i) as boolean;
+					const body: IDataObject = { templateId, init };
+					if (name) body.name = name;
+					if (!init) {
+						const dataJson = this.getNodeParameter('dataJson', i, '{}') as string;
+						const settingsJson = this.getNodeParameter('settingsJson', i, '{}') as string;
+						const data = typeof dataJson === 'string' ? JSON.parse(dataJson) : dataJson;
+						const settings = typeof settingsJson === 'string' ? JSON.parse(settingsJson) : settingsJson;
+						const hasData = Object.keys(data as object).length > 0;
+						const hasSettings = Object.keys(settings as object).length > 0;
+						if (hasData || hasSettings) {
+							body.data = {
+								...(hasSettings ? { settings } : {}),
+								...(data as object),
+							};
+						}
+					}
+					responseData = await docmiralRequest(this, 'POST', '/entities/', body);
 				} else if (operation === 'update') {
 					const id = this.getNodeParameter('entityId', i) as string;
 					const dataJson = this.getNodeParameter('dataJson', i) as string;
@@ -485,29 +773,61 @@ export class Docmiral implements INodeType {
 					const id = this.getNodeParameter('entityId', i) as string;
 					responseData = await docmiralRequest(this, 'DELETE', `/entities/${id}`);
 				} else if (operation === 'buildPdf') {
-					const id = this.getNodeParameter('entityId', i) as string;
-					const engine = this.getNodeParameter('pdfEngine', i) as string;
-					const res = await docmiralRequest(this, 'POST', `/entities/${id}/build/pdf`, { engine });
+					const buildSource = this.getNodeParameter('buildSource', i) as string;
+					let id: string;
+					if (buildSource === 'direct') {
+						const body = await buildDocumentBody(this, i, 'build');
+						const created = await docmiralRequest(this, 'POST', '/entities/', body);
+						id = (created.data as IDataObject).id as string;
+					} else {
+						id = this.getNodeParameter('buildEntityId', i) as string;
+					}
+					const res = await docmiralRequest(this, 'POST', `/entities/${id}/build/pdf`);
 					const url = (res.data as IDataObject).url as string;
 					const buffer = await this.helpers.request({ method: 'GET', url, encoding: null }) as Buffer;
 					const binaryData = await this.helpers.prepareBinaryData(buffer, `document-${id}.pdf`, 'application/pdf');
+					if (buildSource === 'direct' && !this.getNodeParameter('keepDocument', i, true)) {
+						await docmiralRequest(this, 'DELETE', `/entities/${id}`);
+					}
 					returnData.push({ json: { url, documentId: id }, binary: { data: binaryData } });
 					continue;
 				} else if (operation === 'buildPptx') {
-					const id = this.getNodeParameter('entityId', i) as string;
+					const buildSource = this.getNodeParameter('buildSource', i) as string;
+					let id: string;
+					if (buildSource === 'direct') {
+						const body = await buildDocumentBody(this, i, 'build');
+						const created = await docmiralRequest(this, 'POST', '/entities/', body);
+						id = (created.data as IDataObject).id as string;
+					} else {
+						id = this.getNodeParameter('buildEntityId', i) as string;
+					}
 					const res = await docmiralRequest(this, 'POST', `/entities/${id}/build/pptx`);
 					const url = (res.data as IDataObject).url as string;
 					const buffer = await this.helpers.request({ method: 'GET', url, encoding: null }) as Buffer;
 					const binaryData = await this.helpers.prepareBinaryData(buffer, `document-${id}.pptx`, 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+					if (buildSource === 'direct' && !this.getNodeParameter('keepDocument', i, true)) {
+						await docmiralRequest(this, 'DELETE', `/entities/${id}`);
+					}
 					returnData.push({ json: { url, documentId: id }, binary: { data: binaryData } });
 					continue;
 				} else if (operation === 'buildImage') {
-					const id = this.getNodeParameter('entityId', i) as string;
+					const buildSource = this.getNodeParameter('buildSource', i) as string;
+					let id: string;
+					if (buildSource === 'direct') {
+						const body = await buildDocumentBody(this, i, 'build');
+						const created = await docmiralRequest(this, 'POST', '/entities/', body);
+						id = (created.data as IDataObject).id as string;
+					} else {
+						id = this.getNodeParameter('buildEntityId', i) as string;
+					}
 					const page = this.getNodeParameter('page', i) as number;
 					const res = await docmiralRequest(this, 'POST', `/entities/${id}/build/image`, { page });
 					const url = (res.data as IDataObject).url as string;
 					const buffer = await this.helpers.request({ method: 'GET', url, encoding: null }) as Buffer;
 					const binaryData = await this.helpers.prepareBinaryData(buffer, `document-${id}-p${page}.png`, 'image/png');
+					if (buildSource === 'direct' && !this.getNodeParameter('keepDocument', i, true)) {
+						await docmiralRequest(this, 'DELETE', `/entities/${id}`);
+					}
 					returnData.push({ json: { url, documentId: id, page }, binary: { data: binaryData } });
 					continue;
 				} else if (operation === 'clone') {
@@ -523,13 +843,75 @@ export class Docmiral implements INodeType {
 				if (operation === 'list') {
 					const limit = this.getNodeParameter('limit', i) as number;
 					const offset = this.getNodeParameter('offset', i) as number;
-					responseData = await docmiralRequest(this, 'GET', '/templates/', undefined, { limit, offset });
+					const templateListCategoryId = this.getNodeParameter('templateListCategoryId', i, '') as string;
+					const templateLibrary = this.getNodeParameter('templateLibrary', i, 'public') as string;
+					const templateListQs: IDataObject = { limit, offset };
+					if (templateListCategoryId) templateListQs.categoryId = templateListCategoryId;
+					if (templateLibrary === 'mylist') templateListQs.mylist = true;
+					responseData = await docmiralRequest(this, 'GET', '/templates', undefined, templateListQs);
 				} else if (operation === 'get') {
 					const id = this.getNodeParameter('templateId', i) as string;
 					responseData = await docmiralRequest(this, 'GET', `/templates/${id}`);
+				} else if (operation === 'create') {
+					const name = this.getNodeParameter('templateName', i) as string;
+					const categoryId = this.getNodeParameter('categoryId', i) as string;
+					const html = this.getNodeParameter('templateHtml', i) as string;
+					const settingsRaw = this.getNodeParameter('templateSettings', i) as string;
+					const settings = typeof settingsRaw === 'string' ? JSON.parse(settingsRaw) : settingsRaw;
+					const body: IDataObject = {};
+					if (name) body.name = name;
+					if (categoryId) body.categoryId = categoryId;
+					if (html) body.html = html;
+					if (Object.keys(settings as object).length) body.settings = settings;
+					responseData = await docmiralRequest(this, 'POST', '/templates/', body);
+				} else if (operation === 'update') {
+					const id = this.getNodeParameter('templateId', i) as string;
+					const fields = this.getNodeParameter('updateFields', i) as IDataObject;
+					const body: IDataObject = {};
+					for (const [key, val] of Object.entries(fields)) {
+						if (val === '' || val === null || val === undefined) continue;
+						if (key === 'settings' && typeof val === 'string') {
+							body[key] = JSON.parse(val);
+						} else {
+							body[key] = val;
+						}
+					}
+					responseData = await docmiralRequest(this, 'PUT', `/templates/${id}`, body);
+				} else if (operation === 'delete') {
+					const id = this.getNodeParameter('templateId', i) as string;
+					responseData = await docmiralRequest(this, 'DELETE', `/templates/${id}`);
 				} else if (operation === 'clone') {
 					const id = this.getNodeParameter('templateId', i) as string;
 					responseData = await docmiralRequest(this, 'POST', `/templates/${id}/clone`);
+				} else if (operation === 'buildPdf') {
+					const id = this.getNodeParameter('templateId', i) as string;
+					const res = await docmiralRequest(this, 'POST', `/templates/${id}/build/pdf`);
+					const url = (res.data as IDataObject).url as string;
+					const buffer = await this.helpers.request({ method: 'GET', url, encoding: null }) as Buffer;
+					const binaryData = await this.helpers.prepareBinaryData(buffer, `template-${id}.pdf`, 'application/pdf');
+					returnData.push({ json: { url, templateId: id }, binary: { data: binaryData } });
+					continue;
+				} else if (operation === 'buildImage') {
+					const id = this.getNodeParameter('templateId', i) as string;
+					const res = await docmiralRequest(this, 'POST', `/templates/${id}/build/image`);
+					const list = ((res.data as IDataObject).list as string[]) ?? [];
+					for (let p = 0; p < list.length; p++) {
+						const url = list[p];
+						const buffer = await this.helpers.request({ method: 'GET', url, encoding: null }) as Buffer;
+						const binaryData = await this.helpers.prepareBinaryData(buffer, `template-${id}-p${p + 1}.png`, 'image/png');
+						returnData.push({ json: { url, templateId: id, page: p + 1 }, binary: { data: binaryData } });
+					}
+					continue;
+				} else if (operation === 'getSchema') {
+					const id = this.getNodeParameter('templateId', i) as string;
+					const schemaFormat = this.getNodeParameter('schemaFormat', i) as string;
+					const output = this.getNodeParameter('schemaOutput', i) as string;
+					const qs: IDataObject = { schemaFormat, output };
+					if (output === 'sample') {
+						const defaultValue = this.getNodeParameter('defaultValue', i, false) as boolean;
+						qs.defaultValue = defaultValue ? 'true' : 'false';
+					}
+					responseData = await docmiralRequest(this, 'GET', `/templates/schema/${id}`, undefined, qs);
 				} else {
 					throw new NodeOperationError(this.getNode(), `Unknown operation: ${operation}`);
 				}
@@ -538,7 +920,7 @@ export class Docmiral implements INodeType {
 			// ── BUCKET ────────────────────────────────────────────────────────
 			else if (resource === 'bucket') {
 				if (operation === 'list') {
-					responseData = await docmiralRequest(this, 'GET', '/buckets/');
+					responseData = await docmiralRequest(this, 'GET', '/buckets');
 				} else if (operation === 'get') {
 					const id = this.getNodeParameter('bucketId', i) as string;
 					responseData = await docmiralRequest(this, 'GET', `/buckets/${id}`);
@@ -688,6 +1070,12 @@ export class Docmiral implements INodeType {
 						formData,
 						json: true,
 					}) as IDataObject;
+				} else {
+					throw new NodeOperationError(this.getNode(), `Unknown operation: ${operation}`);
+				}
+			} else if (resource === 'category') {
+				if (operation === 'list') {
+					responseData = await docmiralRequest(this, 'GET', '/categories');
 				} else {
 					throw new NodeOperationError(this.getNode(), `Unknown operation: ${operation}`);
 				}

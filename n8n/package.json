@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-docmiral",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "n8n community node for DocMiral — document generation, AI filling, PDF export, and e-signatures",
   "keywords": [
     "n8n-community-node-package",
@@ -21,7 +21,8 @@
   "license": "MIT",
   "homepage": "https://docmiral.com",
   "author": {
-    "name": "DocMiral"
+    "name": "DocMiral",
+    "email": "integrations@docmiral.com"
   },
   "repository": {
     "type": "git",

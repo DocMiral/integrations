@@ -12,7 +12,7 @@ export class DocmiralApi implements ICredentialType {
 			typeOptions: { password: true },
 			default: '',
 			required: true,
-			description: 'Your DocMiral API token. Generate one at https://app.docmiral.com/profile/apikeys',
+			description: 'Your DocMiral API token. Generate one at https://docmiral.com/profile/apikeys',
 		},
 		{
 			displayName: 'Base URL',

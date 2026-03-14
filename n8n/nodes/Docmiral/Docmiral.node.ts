@@ -85,7 +85,7 @@ export class Docmiral implements INodeType {
 				options: [
 					{ name: 'Document', value: 'document' },
 					{ name: 'Template', value: 'template' },
-					{ name: 'TARS (AI)', value: 'tars' },
+					// { name: 'TARS (AI)', value: 'tars' },
 					{ name: 'Category', value: 'category' },
 				],
 				default: 'document',

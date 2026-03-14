@@ -209,6 +209,6 @@ MIT — see [LICENSE](https://github.com/DocMiral/integrations/blob/master/n8n/L
 ## Links
 
 - [DocMiral Website](https://docmiral.com)
-- [DocMiral API Docs](https://api.docmiral.com/api/docs)
-- [GitHub Repository](https://github.com/docmiral/n8n-nodes-docmiral)
-- [Report an Issue](https://github.com/docmiral/n8n-nodes-docmiral/issues)
+- [DocMiral API Docs](https://docmiral.com/api)
+- [GitHub Repository](https://github.com/DocMiral/integrations)
+- [Report an Issue](https://github.com/DocMiral/integrations/issues)

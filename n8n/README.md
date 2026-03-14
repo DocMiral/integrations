@@ -202,7 +202,7 @@ AI-powered operations for document intelligence.
 
 ## License
 
-MIT — see [LICENSE](https://github.com/docmiral/n8n-nodes-docmiral/blob/master/LICENSE)
+MIT — see [LICENSE](https://github.com/DocMiral/integrations/blob/master/n8n/LICENSE)
 
 ---
 

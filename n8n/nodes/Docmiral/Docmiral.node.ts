@@ -85,11 +85,8 @@ export class Docmiral implements INodeType {
 				options: [
 					{ name: 'Document', value: 'document' },
 					{ name: 'Template', value: 'template' },
-					{ name: 'Bucket', value: 'bucket' },
-					{ name: 'E-Signature', value: 'esignature' },
 					{ name: 'TARS (AI)', value: 'tars' },
 					{ name: 'Category', value: 'category' },
-					{ name: 'File', value: 'file' },
 				],
 				default: 'document',
 			},
@@ -136,41 +133,6 @@ export class Docmiral implements INodeType {
 				default: 'list',
 			},
 
-			// ── bucket operations ─────────────────────────────────────────────
-			{
-				displayName: 'Operation',
-				name: 'operation',
-				type: 'options',
-				noDataExpression: true,
-				displayOptions: { show: { resource: ['bucket'] } },
-				options: [
-					{ name: 'List', value: 'list', action: 'List buckets' },
-					{ name: 'Get', value: 'get', action: 'Get a bucket' },
-					{ name: 'Create', value: 'create', action: 'Create a bucket' },
-					{ name: 'Update', value: 'update', action: 'Update a bucket' },
-					{ name: 'Delete', value: 'delete', action: 'Delete a bucket' },
-				],
-				default: 'list',
-			},
-
-			// ── esignature operations ─────────────────────────────────────────
-			{
-				displayName: 'Operation',
-				name: 'operation',
-				type: 'options',
-				noDataExpression: true,
-				displayOptions: { show: { resource: ['esignature'] } },
-				options: [
-					{ name: 'Send Request', value: 'sendRequest', action: 'Send a signature request' },
-					{ name: 'List Sent', value: 'listSent', action: 'List sent signature requests' },
-					{ name: 'List Received', value: 'listReceived', action: 'List received signature requests' },
-					{ name: 'Get', value: 'get', action: 'Get a signature request' },
-					{ name: 'Resend', value: 'resend', action: 'Resend a signature request' },
-					{ name: 'Cancel', value: 'cancel', action: 'Cancel a signature request' },
-				],
-				default: 'listSent',
-			},
-
 			// ── tars operations ───────────────────────────────────────────────
 			{
 				displayName: 'Operation',
@@ -185,19 +147,6 @@ export class Docmiral implements INodeType {
 					{ name: 'Smart Clone', value: 'smartClone', action: 'AI-powered smart clone of a document' },
 				],
 				default: 'chat',
-			},
-
-			// ── file operations ───────────────────────────────────────────────
-			{
-				displayName: 'Operation',
-				name: 'operation',
-				type: 'options',
-				noDataExpression: true,
-				displayOptions: { show: { resource: ['file'] } },
-				options: [
-					{ name: 'Upload', value: 'upload', action: 'Upload a file' },
-				],
-				default: 'upload',
 			},
 
 			// ── category operations ──────────────────────────────────────────────
@@ -567,99 +516,6 @@ export class Docmiral implements INodeType {
 			},
 
 			// ══════════════════════════════════════════════════════════════════
-			// BUCKET fields
-			// ══════════════════════════════════════════════════════════════════
-
-			{
-				displayName: 'Bucket ID',
-				name: 'bucketId',
-				type: 'string',
-				default: '',
-				required: true,
-				displayOptions: { show: { resource: ['bucket'], operation: ['get', 'update', 'delete'] } },
-			},
-			{
-				displayName: 'Name',
-				name: 'name',
-				type: 'string',
-				default: '',
-				required: true,
-				displayOptions: { show: { resource: ['bucket'], operation: ['create'] } },
-			},
-			{
-				displayName: 'Data (JSON)',
-				name: 'dataJson',
-				type: 'json',
-				default: '{}',
-				displayOptions: { show: { resource: ['bucket'], operation: ['create', 'update'] } },
-				description: 'Bucket data as JSON object',
-			},
-
-			// ══════════════════════════════════════════════════════════════════
-			// E-SIGNATURE fields
-			// ══════════════════════════════════════════════════════════════════
-
-			{
-				displayName: 'Request ID',
-				name: 'requestId',
-				type: 'string',
-				default: '',
-				required: true,
-				displayOptions: {
-					show: { resource: ['esignature'], operation: ['get', 'resend', 'cancel'] },
-				},
-			},
-			{
-				displayName: 'Document ID',
-				name: 'entityId',
-				type: 'string',
-				default: '',
-				required: true,
-				displayOptions: { show: { resource: ['esignature'], operation: ['sendRequest'] } },
-				description: 'ID of the document to send for signature',
-			},
-			{
-				displayName: 'Signers',
-				name: 'signers',
-				type: 'fixedCollection',
-				typeOptions: { multipleValues: true },
-				default: {},
-				displayOptions: { show: { resource: ['esignature'], operation: ['sendRequest'] } },
-				options: [
-					{
-						name: 'signer',
-						displayName: 'Signer',
-						values: [
-							{
-								displayName: 'Email',
-								name: 'email',
-								type: 'string',
-								placeholder: 'name@email.com',
-								default: '',
-								required: true,
-							},
-							{
-								displayName: 'Name',
-								name: 'name',
-								type: 'string',
-								default: '',
-							},
-							{
-								displayName: 'Page',
-								name: 'page',
-								type: 'options',
-								options: [
-									{ name: 'First Page', value: 'first' },
-									{ name: 'Last Page', value: 'last' },
-								],
-								default: 'last',
-							},
-						],
-					},
-				],
-			},
-
-			// ══════════════════════════════════════════════════════════════════
 			// TARS fields
 			// ══════════════════════════════════════════════════════════════════
 
@@ -706,19 +562,6 @@ export class Docmiral implements INodeType {
 				description: 'Category for the cloned document',
 			},
 
-			// ══════════════════════════════════════════════════════════════════
-			// FILE fields
-			// ══════════════════════════════════════════════════════════════════
-
-			{
-				displayName: 'Binary Property',
-				name: 'binaryProperty',
-				type: 'string',
-				default: 'data',
-				required: true,
-				displayOptions: { show: { resource: ['file'], operation: ['upload'] } },
-				description: 'Name of the binary property containing the file to upload',
-			},
 		],
 	};
 
@@ -917,58 +760,7 @@ export class Docmiral implements INodeType {
 				}
 			}
 
-			// ── BUCKET ────────────────────────────────────────────────────────
-			else if (resource === 'bucket') {
-				if (operation === 'list') {
-					responseData = await docmiralRequest(this, 'GET', '/buckets');
-				} else if (operation === 'get') {
-					const id = this.getNodeParameter('bucketId', i) as string;
-					responseData = await docmiralRequest(this, 'GET', `/buckets/${id}`);
-				} else if (operation === 'create') {
-					const name = this.getNodeParameter('name', i) as string;
-					const dataJson = this.getNodeParameter('dataJson', i) as string;
-					const data = typeof dataJson === 'string' ? JSON.parse(dataJson) : dataJson;
-					responseData = await docmiralRequest(this, 'POST', '/buckets/', { name, data });
-				} else if (operation === 'update') {
-					const id = this.getNodeParameter('bucketId', i) as string;
-					const dataJson = this.getNodeParameter('dataJson', i) as string;
-					const data = typeof dataJson === 'string' ? JSON.parse(dataJson) : dataJson;
-					responseData = await docmiralRequest(this, 'PUT', `/buckets/${id}`, { data });
-				} else if (operation === 'delete') {
-					const id = this.getNodeParameter('bucketId', i) as string;
-					responseData = await docmiralRequest(this, 'DELETE', `/buckets/${id}`);
-				} else {
-					throw new NodeOperationError(this.getNode(), `Unknown operation: ${operation}`);
-				}
-			}
 
-			// ── E-SIGNATURE ───────────────────────────────────────────────────
-			else if (resource === 'esignature') {
-				if (operation === 'listSent') {
-					responseData = await docmiralRequest(this, 'GET', '/esignatures/requests');
-				} else if (operation === 'listReceived') {
-					responseData = await docmiralRequest(this, 'GET', '/esignatures/received');
-				} else if (operation === 'get') {
-					const id = this.getNodeParameter('requestId', i) as string;
-					responseData = await docmiralRequest(this, 'GET', `/esignatures/${id}`);
-				} else if (operation === 'resend') {
-					const id = this.getNodeParameter('requestId', i) as string;
-					responseData = await docmiralRequest(this, 'POST', `/esignatures/${id}/resend`);
-				} else if (operation === 'cancel') {
-					const id = this.getNodeParameter('requestId', i) as string;
-					responseData = await docmiralRequest(this, 'POST', `/esignatures/${id}/cancel`);
-				} else if (operation === 'sendRequest') {
-					const entityId = this.getNodeParameter('entityId', i) as string;
-					const signersRaw = this.getNodeParameter('signers', i) as { signer?: Array<{ email: string; name?: string; page?: string }> };
-					const signers = signersRaw.signer ?? [];
-					responseData = await docmiralRequest(this, 'POST', '/esignatures/request', {
-						entity: entityId,
-						signers,
-					});
-				} else {
-					throw new NodeOperationError(this.getNode(), `Unknown operation: ${operation}`);
-				}
-			}
 
 			// ── TARS ──────────────────────────────────────────────────────────
 			else if (resource === 'tars') {
@@ -1042,38 +834,7 @@ export class Docmiral implements INodeType {
 					throw new NodeOperationError(this.getNode(), `Unknown operation: ${operation}`);
 				}
 			}
-
-			// ── FILE ──────────────────────────────────────────────────────────
-			else if (resource === 'file') {
-				if (operation === 'upload') {
-					const binaryProperty = this.getNodeParameter('binaryProperty', i) as string;
-					const binaryData = items[i].binary as IBinaryKeyData;
-					if (!binaryData?.[binaryProperty]) {
-						throw new NodeOperationError(this.getNode(), `No binary data found at property "${binaryProperty}"`);
-					}
-					const fileBuffer = await this.helpers.getBinaryDataBuffer(i, binaryProperty);
-					const credentials = await this.getCredentials('docmiralApi');
-					const baseUrl = (credentials.baseUrl as string).replace(/\/$/, '');
-					const formData = {
-						file: {
-							value: fileBuffer,
-							options: {
-								filename: binaryData[binaryProperty].fileName ?? 'upload',
-								contentType: binaryData[binaryProperty].mimeType,
-							},
-						},
-					};
-					responseData = await this.helpers.request({
-						method: 'POST',
-						url: `${baseUrl}/upload/`,
-						headers: { Authorization: `Bearer ${credentials.apiToken}` },
-						formData,
-						json: true,
-					}) as IDataObject;
-				} else {
-					throw new NodeOperationError(this.getNode(), `Unknown operation: ${operation}`);
-				}
-			} else if (resource === 'category') {
+ else if (resource === 'category') {
 				if (operation === 'list') {
 					responseData = await docmiralRequest(this, 'GET', '/categories');
 				} else {

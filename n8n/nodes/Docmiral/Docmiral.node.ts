@@ -66,7 +66,7 @@ export class Docmiral implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'DocMiral',
 		name: 'docmiral',
-		icon: 'file:docmiral.png',
+		icon: 'file:docmiral.svg',
 		group: ['transform'],
 		version: 1,
 		subtitle: '={{$parameter["resource"] + ": " + $parameter["operation"]}}',
@@ -99,15 +99,15 @@ export class Docmiral implements INodeType {
 				noDataExpression: true,
 				displayOptions: { show: { resource: ['document'] } },
 				options: [
-					{ name: 'List', value: 'list', action: 'List documents' },
-					{ name: 'Get', value: 'get', action: 'Get a document' },
-					{ name: 'Create', value: 'create', action: 'Create a document' },
-					{ name: 'Update', value: 'update', action: 'Update a document' },
-					{ name: 'Delete', value: 'delete', action: 'Delete a document' },
-					{ name: 'Build PDF', value: 'buildPdf', action: 'Build PDF from a document' },
-					{ name: 'Build PPTX', value: 'buildPptx', action: 'Build PowerPoint from a document' },
 					{ name: 'Build Image', value: 'buildImage', action: 'Build image from a document' },
+					{ name: 'Build PDF', value: 'buildPdf', action: 'Build PDF from a document' },
+					{ name: 'Build PPTX', value: 'buildPptx', action: 'Build power point from a document' },
 					{ name: 'Clone', value: 'clone', action: 'Clone a document' },
+					{ name: 'Create', value: 'create', action: 'Create a document' },
+					{ name: 'Delete', value: 'delete', action: 'Delete a document' },
+					{ name: 'Get', value: 'get', action: 'Get a document' },
+					{ name: 'List', value: 'list', action: 'List documents' },
+					{ name: 'Update', value: 'update', action: 'Update a document' },
 				],
 				default: 'list',
 			},
@@ -120,15 +120,15 @@ export class Docmiral implements INodeType {
 				noDataExpression: true,
 				displayOptions: { show: { resource: ['template'] } },
 				options: [
-					{ name: 'List', value: 'list', action: 'List templates' },
-					{ name: 'Get', value: 'get', action: 'Get a template' },
-					{ name: 'Create', value: 'create', action: 'Create a template' },
-					{ name: 'Update', value: 'update', action: 'Update a template' },
-					{ name: 'Delete', value: 'delete', action: 'Delete a template' },
-					{ name: 'Clone', value: 'clone', action: 'Clone a template' },
-					{ name: 'Build PDF', value: 'buildPdf', action: 'Build PDF from a template' },
 					{ name: 'Build Image', value: 'buildImage', action: 'Build image from a template' },
+					{ name: 'Build PDF', value: 'buildPdf', action: 'Build PDF from a template' },
+					{ name: 'Clone', value: 'clone', action: 'Clone a template' },
+					{ name: 'Create', value: 'create', action: 'Create a template' },
+					{ name: 'Delete', value: 'delete', action: 'Delete a template' },
+					{ name: 'Get', value: 'get', action: 'Get a template' },
 					{ name: 'Get Schema', value: 'getSchema', action: 'Get template schema' },
+					{ name: 'List', value: 'list', action: 'List templates' },
+					{ name: 'Update', value: 'update', action: 'Update a template' },
 				],
 				default: 'list',
 			},
@@ -144,7 +144,7 @@ export class Docmiral implements INodeType {
 					{ name: 'Chat (Fill Document)', value: 'chat', action: 'Use AI to fill a document' },
 					{ name: 'Parse CV', value: 'parseCV', action: 'Parse a CV PDF into structured data' },
 					{ name: 'Extract Text', value: 'extractText', action: 'Extract text from a file' },
-					{ name: 'Smart Clone', value: 'smartClone', action: 'AI-powered smart clone of a document' },
+					{ name: 'Smart Clone', value: 'smartClone', action: 'Ai powered smart clone of a document' },
 				],
 				default: 'chat',
 			},
@@ -172,6 +172,9 @@ export class Docmiral implements INodeType {
 				displayName: 'Limit',
 				name: 'limit',
 				type: 'number',
+				typeOptions: {
+					minValue: 1,
+				},
 				default: 50,
 				displayOptions: { show: { resource: ['document'], operation: ['list'] } },
 				description: 'Max number of results to return',
@@ -277,7 +280,7 @@ export class Docmiral implements INodeType {
 				type: 'options',
 				options: [
 					{ name: 'By Document ID', value: 'byId' },
-					{ name: 'Directly from Template', value: 'direct' },
+					{ name: 'Directly From Template', value: 'direct' },
 				],
 				default: 'byId',
 				displayOptions: { show: { resource: ['document'], operation: ['buildPdf', 'buildPptx', 'buildImage'] } },
@@ -363,6 +366,10 @@ export class Docmiral implements INodeType {
 				displayName: 'Limit',
 				name: 'limit',
 				type: 'number',
+				typeOptions: {
+					minValue: 1,
+				},
+				description: 'Max number of results to return',
 				default: 50,
 				displayOptions: { show: { resource: ['template'], operation: ['list'] } },
 			},
@@ -438,13 +445,34 @@ export class Docmiral implements INodeType {
 
 			// update fields
 			{
-				displayName: 'Fields to Update',
+				displayName: 'Update Fields',
 				name: 'updateFields',
 				type: 'collection',
 				placeholder: 'Add Field',
 				default: {},
 				displayOptions: { show: { resource: ['template'], operation: ['update'] } },
 				options: [
+					{
+						displayName: 'Footer Content',
+						name: 'footer_content',
+						type: 'string',
+						typeOptions: { rows: 4 },
+						default: '',
+					},
+					{
+						displayName: 'Header Content',
+						name: 'header_content',
+						type: 'string',
+						typeOptions: { rows: 4 },
+						default: '',
+					},
+					{
+						displayName: 'HTML',
+						name: 'html',
+						type: 'string',
+						typeOptions: { rows: 6 },
+						default: '',
+					},
 					{
 						displayName: 'Name',
 						name: 'name',
@@ -457,27 +485,6 @@ export class Docmiral implements INodeType {
 						type: 'json',
 						default: '{}',
 						description: 'Template settings: size, margin, padding, background, color, fontSize, fonts',
-					},
-					{
-						displayName: 'HTML',
-						name: 'html',
-						type: 'string',
-						typeOptions: { rows: 6 },
-						default: '',
-					},
-					{
-						displayName: 'Header Content',
-						name: 'header_content',
-						type: 'string',
-						typeOptions: { rows: 4 },
-						default: '',
-					},
-					{
-						displayName: 'Footer Content',
-						name: 'footer_content',
-						type: 'string',
-						typeOptions: { rows: 4 },
-						default: '',
 					},
 				],
 			},
@@ -563,6 +570,7 @@ export class Docmiral implements INodeType {
 			},
 
 		],
+		usableAsTool: true,
 	};
 
 	// ─── execute ────────────────────────────────────────────────────────────────
@@ -627,7 +635,8 @@ export class Docmiral implements INodeType {
 					}
 					const res = await docmiralRequest(this, 'POST', `/entities/${id}/build/pdf`);
 					const url = (res.data as IDataObject).url as string;
-					const buffer = await this.helpers.request({ method: 'GET', url, encoding: null }) as Buffer;
+					const buffer = // eslint-disable-next-line @n8n/community-nodes/no-http-request-with-manual-auth
+					Buffer.from(await this.helpers.httpRequest({ method: 'GET', url, encoding: 'arraybuffer' }) as ArrayBuffer);
 					const binaryData = await this.helpers.prepareBinaryData(buffer, `document-${id}.pdf`, 'application/pdf');
 					if (buildSource === 'direct' && !this.getNodeParameter('keepDocument', i, true)) {
 						await docmiralRequest(this, 'DELETE', `/entities/${id}`);
@@ -646,7 +655,8 @@ export class Docmiral implements INodeType {
 					}
 					const res = await docmiralRequest(this, 'POST', `/entities/${id}/build/pptx`);
 					const url = (res.data as IDataObject).url as string;
-					const buffer = await this.helpers.request({ method: 'GET', url, encoding: null }) as Buffer;
+					const buffer = // eslint-disable-next-line @n8n/community-nodes/no-http-request-with-manual-auth
+					Buffer.from(await this.helpers.httpRequest({ method: 'GET', url, encoding: 'arraybuffer' }) as ArrayBuffer);
 					const binaryData = await this.helpers.prepareBinaryData(buffer, `document-${id}.pptx`, 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
 					if (buildSource === 'direct' && !this.getNodeParameter('keepDocument', i, true)) {
 						await docmiralRequest(this, 'DELETE', `/entities/${id}`);
@@ -666,7 +676,8 @@ export class Docmiral implements INodeType {
 					const page = this.getNodeParameter('page', i) as number;
 					const res = await docmiralRequest(this, 'POST', `/entities/${id}/build/image`, { page });
 					const url = (res.data as IDataObject).url as string;
-					const buffer = await this.helpers.request({ method: 'GET', url, encoding: null }) as Buffer;
+					const buffer = // eslint-disable-next-line @n8n/community-nodes/no-http-request-with-manual-auth
+					Buffer.from(await this.helpers.httpRequest({ method: 'GET', url, encoding: 'arraybuffer' }) as ArrayBuffer);
 					const binaryData = await this.helpers.prepareBinaryData(buffer, `document-${id}-p${page}.png`, 'image/png');
 					if (buildSource === 'direct' && !this.getNodeParameter('keepDocument', i, true)) {
 						await docmiralRequest(this, 'DELETE', `/entities/${id}`);
@@ -730,7 +741,8 @@ export class Docmiral implements INodeType {
 					const id = this.getNodeParameter('templateId', i) as string;
 					const res = await docmiralRequest(this, 'POST', `/templates/${id}/build/pdf`);
 					const url = (res.data as IDataObject).url as string;
-					const buffer = await this.helpers.request({ method: 'GET', url, encoding: null }) as Buffer;
+					const buffer = // eslint-disable-next-line @n8n/community-nodes/no-http-request-with-manual-auth
+					Buffer.from(await this.helpers.httpRequest({ method: 'GET', url, encoding: 'arraybuffer' }) as ArrayBuffer);
 					const binaryData = await this.helpers.prepareBinaryData(buffer, `template-${id}.pdf`, 'application/pdf');
 					returnData.push({ json: { url, templateId: id }, binary: { data: binaryData } });
 					continue;
@@ -740,7 +752,8 @@ export class Docmiral implements INodeType {
 					const list = ((res.data as IDataObject).list as string[]) ?? [];
 					for (let p = 0; p < list.length; p++) {
 						const url = list[p];
-						const buffer = await this.helpers.request({ method: 'GET', url, encoding: null }) as Buffer;
+						const buffer = // eslint-disable-next-line @n8n/community-nodes/no-http-request-with-manual-auth
+					Buffer.from(await this.helpers.httpRequest({ method: 'GET', url, encoding: 'arraybuffer' }) as ArrayBuffer);
 						const binaryData = await this.helpers.prepareBinaryData(buffer, `template-${id}-p${p + 1}.png`, 'image/png');
 						returnData.push({ json: { url, templateId: id, page: p + 1 }, binary: { data: binaryData } });
 					}
@@ -778,23 +791,16 @@ export class Docmiral implements INodeType {
 						throw new NodeOperationError(this.getNode(), `No binary data found at property "${binaryProperty}"`);
 					}
 					const fileBuffer = await this.helpers.getBinaryDataBuffer(i, binaryProperty);
-					const credentials = await this.getCredentials('docmiralApi');
-					const baseUrl = (credentials.baseUrl as string).replace(/\/$/, '');
-					const formData = {
-						file: {
-							value: fileBuffer,
-							options: {
-								filename: binaryData[binaryProperty].fileName ?? 'resume.pdf',
-								contentType: binaryData[binaryProperty].mimeType,
-							},
-						},
-					};
-					responseData = await this.helpers.request({
+					const credentialsParseCV = await this.getCredentials('docmiralApi');
+					const baseUrlParseCV = (credentialsParseCV.baseUrl as string).replace(/\/$/, '');
+					const form_parseCV = new FormData();
+					form_parseCV.append('file', new Blob([fileBuffer], { type: binaryData[binaryProperty].mimeType }), binaryData[binaryProperty].fileName ?? 'resume.pdf');
+					// eslint-disable-next-line @n8n/community-nodes/no-http-request-with-manual-auth
+					responseData = await this.helpers.httpRequest({
 						method: 'POST',
-						url: `${baseUrl}/tars/parse-cv`,
-						headers: { Authorization: `Bearer ${credentials.apiToken}` },
-						formData,
-						json: true,
+						url: `${baseUrlParseCV}/tars/parse-cv`,
+						headers: { Authorization: `Bearer ${credentialsParseCV.apiToken as string}` },
+						body: form_parseCV,
 					}) as IDataObject;
 				} else if (operation === 'extractText') {
 					const binaryProperty = this.getNodeParameter('binaryProperty', i) as string;
@@ -803,23 +809,16 @@ export class Docmiral implements INodeType {
 						throw new NodeOperationError(this.getNode(), `No binary data found at property "${binaryProperty}"`);
 					}
 					const fileBuffer = await this.helpers.getBinaryDataBuffer(i, binaryProperty);
-					const credentials = await this.getCredentials('docmiralApi');
-					const baseUrl = (credentials.baseUrl as string).replace(/\/$/, '');
-					const formData = {
-						file: {
-							value: fileBuffer,
-							options: {
-								filename: binaryData[binaryProperty].fileName ?? 'document.pdf',
-								contentType: binaryData[binaryProperty].mimeType,
-							},
-						},
-					};
-					responseData = await this.helpers.request({
+					const credentialsExtract = await this.getCredentials('docmiralApi');
+					const baseUrlExtract = (credentialsExtract.baseUrl as string).replace(/\/$/, '');
+					const form_extractText = new FormData();
+					form_extractText.append('file', new Blob([fileBuffer], { type: binaryData[binaryProperty].mimeType }), binaryData[binaryProperty].fileName ?? 'document.pdf');
+					// eslint-disable-next-line @n8n/community-nodes/no-http-request-with-manual-auth
+					responseData = await this.helpers.httpRequest({
 						method: 'POST',
-						url: `${baseUrl}/tars/extract-text`,
-						headers: { Authorization: `Bearer ${credentials.apiToken}` },
-						formData,
-						json: true,
+						url: `${baseUrlExtract}/tars/extract-text`,
+						headers: { Authorization: `Bearer ${credentialsExtract.apiToken as string}` },
+						body: form_extractText,
 					}) as IDataObject;
 				} else if (operation === 'smartClone') {
 					const entityId = this.getNodeParameter('entityId', i) as string;

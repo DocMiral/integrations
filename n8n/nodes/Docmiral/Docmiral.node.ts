@@ -23,17 +23,20 @@ async function docmiralRequest(
 
 	const hasBody = body !== undefined && Object.keys(body).length > 0;
 
-	return ctx.helpers.httpRequest({
+	return ctx.helpers.httpRequestWithAuthentication.call(ctx, 'docmiralApi', {
 		method,
 		url: `${baseUrl}${path}`,
-		headers: {
-			Authorization: `Bearer ${credentials.apiToken as string}`,
-			'Content-Type': 'application/json',
-		},
+		headers: { 'Content-Type': 'application/json' },
 		qs,
 		body: hasBody ? body : undefined,
 		json: true,
 	}) as Promise<IDataObject>;
+}
+
+async function downloadBinary(ctx: IExecuteFunctions, url: string): Promise<Buffer> {
+	return Buffer.from(
+		await ctx.helpers.httpRequest({ method: 'GET', url, encoding: 'arraybuffer' }) as ArrayBuffer,
+	);
 }
 
 
@@ -635,8 +638,7 @@ export class Docmiral implements INodeType {
 					}
 					const res = await docmiralRequest(this, 'POST', `/entities/${id}/build/pdf`);
 					const url = (res.data as IDataObject).url as string;
-					const buffer = // eslint-disable-next-line @n8n/community-nodes/no-http-request-with-manual-auth
-					Buffer.from(await this.helpers.httpRequest({ method: 'GET', url, encoding: 'arraybuffer' }) as ArrayBuffer);
+					const buffer = await downloadBinary(this, url);
 					const binaryData = await this.helpers.prepareBinaryData(buffer, `document-${id}.pdf`, 'application/pdf');
 					if (buildSource === 'direct' && !this.getNodeParameter('keepDocument', i, true)) {
 						await docmiralRequest(this, 'DELETE', `/entities/${id}`);
@@ -655,8 +657,7 @@ export class Docmiral implements INodeType {
 					}
 					const res = await docmiralRequest(this, 'POST', `/entities/${id}/build/pptx`);
 					const url = (res.data as IDataObject).url as string;
-					const buffer = // eslint-disable-next-line @n8n/community-nodes/no-http-request-with-manual-auth
-					Buffer.from(await this.helpers.httpRequest({ method: 'GET', url, encoding: 'arraybuffer' }) as ArrayBuffer);
+					const buffer = await downloadBinary(this, url);
 					const binaryData = await this.helpers.prepareBinaryData(buffer, `document-${id}.pptx`, 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
 					if (buildSource === 'direct' && !this.getNodeParameter('keepDocument', i, true)) {
 						await docmiralRequest(this, 'DELETE', `/entities/${id}`);
@@ -676,8 +677,7 @@ export class Docmiral implements INodeType {
 					const page = this.getNodeParameter('page', i) as number;
 					const res = await docmiralRequest(this, 'POST', `/entities/${id}/build/image`, { page });
 					const url = (res.data as IDataObject).url as string;
-					const buffer = // eslint-disable-next-line @n8n/community-nodes/no-http-request-with-manual-auth
-					Buffer.from(await this.helpers.httpRequest({ method: 'GET', url, encoding: 'arraybuffer' }) as ArrayBuffer);
+					const buffer = await downloadBinary(this, url);
 					const binaryData = await this.helpers.prepareBinaryData(buffer, `document-${id}-p${page}.png`, 'image/png');
 					if (buildSource === 'direct' && !this.getNodeParameter('keepDocument', i, true)) {
 						await docmiralRequest(this, 'DELETE', `/entities/${id}`);
@@ -741,8 +741,7 @@ export class Docmiral implements INodeType {
 					const id = this.getNodeParameter('templateId', i) as string;
 					const res = await docmiralRequest(this, 'POST', `/templates/${id}/build/pdf`);
 					const url = (res.data as IDataObject).url as string;
-					const buffer = // eslint-disable-next-line @n8n/community-nodes/no-http-request-with-manual-auth
-					Buffer.from(await this.helpers.httpRequest({ method: 'GET', url, encoding: 'arraybuffer' }) as ArrayBuffer);
+					const buffer = await downloadBinary(this, url);
 					const binaryData = await this.helpers.prepareBinaryData(buffer, `template-${id}.pdf`, 'application/pdf');
 					returnData.push({ json: { url, templateId: id }, binary: { data: binaryData } });
 					continue;
@@ -752,8 +751,7 @@ export class Docmiral implements INodeType {
 					const list = ((res.data as IDataObject).list as string[]) ?? [];
 					for (let p = 0; p < list.length; p++) {
 						const url = list[p];
-						const buffer = // eslint-disable-next-line @n8n/community-nodes/no-http-request-with-manual-auth
-					Buffer.from(await this.helpers.httpRequest({ method: 'GET', url, encoding: 'arraybuffer' }) as ArrayBuffer);
+						const buffer = await downloadBinary(this, url);
 						const binaryData = await this.helpers.prepareBinaryData(buffer, `template-${id}-p${p + 1}.png`, 'image/png');
 						returnData.push({ json: { url, templateId: id, page: p + 1 }, binary: { data: binaryData } });
 					}
@@ -795,11 +793,9 @@ export class Docmiral implements INodeType {
 					const baseUrlParseCV = (credentialsParseCV.baseUrl as string).replace(/\/$/, '');
 					const form_parseCV = new FormData();
 					form_parseCV.append('file', new Blob([fileBuffer], { type: binaryData[binaryProperty].mimeType }), binaryData[binaryProperty].fileName ?? 'resume.pdf');
-					// eslint-disable-next-line @n8n/community-nodes/no-http-request-with-manual-auth
-					responseData = await this.helpers.httpRequest({
+					responseData = await this.helpers.httpRequestWithAuthentication.call(this, 'docmiralApi', {
 						method: 'POST',
 						url: `${baseUrlParseCV}/tars/parse-cv`,
-						headers: { Authorization: `Bearer ${credentialsParseCV.apiToken as string}` },
 						body: form_parseCV,
 					}) as IDataObject;
 				} else if (operation === 'extractText') {
@@ -813,11 +809,9 @@ export class Docmiral implements INodeType {
 					const baseUrlExtract = (credentialsExtract.baseUrl as string).replace(/\/$/, '');
 					const form_extractText = new FormData();
 					form_extractText.append('file', new Blob([fileBuffer], { type: binaryData[binaryProperty].mimeType }), binaryData[binaryProperty].fileName ?? 'document.pdf');
-					// eslint-disable-next-line @n8n/community-nodes/no-http-request-with-manual-auth
-					responseData = await this.helpers.httpRequest({
+					responseData = await this.helpers.httpRequestWithAuthentication.call(this, 'docmiralApi', {
 						method: 'POST',
 						url: `${baseUrlExtract}/tars/extract-text`,
-						headers: { Authorization: `Bearer ${credentialsExtract.apiToken as string}` },
 						body: form_extractText,
 					}) as IDataObject;
 				} else if (operation === 'smartClone') {

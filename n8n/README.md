@@ -6,7 +6,7 @@ An [n8n](https://n8n.io) community node for [DocMiral](https://docmiral.com) —
 
 ## Features
 
-- Generate documents from templates with structured data
+- Generate documents from templates written in **HTML & Tailwind CSS** — full styling control with structured data
 - Export to **PDF**, **PowerPoint (PPTX)**, or **Image** — from an existing document or directly from a template in a single step
 - Use **TARS AI** to fill documents from natural language, parse CVs, extract text, and smart-clone documents
 - Manage templates (create, update, clone, build, get schema)
